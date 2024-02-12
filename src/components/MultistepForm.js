@@ -25,8 +25,11 @@ const MultiStepForm = ({ mintTokens, transferTokens }) => {
 
       try {
         if (window.ethereum) {
+          console.log("Ethereum",window.ethereum)
           const provider = new ethers.providers.Web3Provider(window.ethereum);
+          console.log("Provider",provider);
           const signer = provider.getSigner();
+          console.log("Signer",signer);
           const contract = new ethers.Contract(tokenAddress, erc20ABI, signer);
 
           const tx = await contract.mint(signer.getAddress(), ethers.utils.parseUnits(amount, 'ether'));
@@ -62,29 +65,27 @@ const MultiStepForm = ({ mintTokens, transferTokens }) => {
     switch (stepIndex) {
       case 0:
         return (
-          <div>
-            <label>
-              Amount to Mint:
+            <label className="block mb-4">
+              <span className="text-gray-700">Amount to Mint:</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="mt-1 p-2 border rounded-md w-full focus:outline-none focus:ring focus:border-blue-300"
               />
             </label>
-          </div>
         );
       case 1:
         return (
-          <div>
-            <label>
-              Recipient's Ethereum Address:
+            <label className="block mb-4">
+              <span className="text-gray-700">Recipient&apos;s Ethereum Address:</span>
               <input
                 type="text"
                 value={recipientAddress}
                 onChange={(e) => setRecipientAddress(e.target.value)}
+                className="mt-1 p-2 border rounded-md w-full focus:outline-none focus:ring focus:border-blue-300"
               />
             </label>
-          </div>
         );
       default:
         return 'Unknown stepIndex';
@@ -100,19 +101,19 @@ const MultiStepForm = ({ mintTokens, transferTokens }) => {
           </Step>
         ))}
       </Stepper>
-      <div>
+      <form className="max-w-md mx-auto p-6 bg-white rounded-md shadow-md">
         <Typography>{getStepContent(activeStep)}</Typography>
-        <div>
+        <div className="flex justify-between mt-4">
           <Button disabled={activeStep === 0} onClick={handleBack}>
             Back
           </Button>
-          <Button variant="contained" color="primary" onClick={handleNext}>
+          <Button  color="primary" onClick={handleNext}>
             {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
           </Button>
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {success && <p style={{ color: 'green' }}>{success}</p>}
-      </div>
+      </form>
     </div>
   );
 };
