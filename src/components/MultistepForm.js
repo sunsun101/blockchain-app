@@ -1,64 +1,102 @@
 import React, { useState } from 'react';
 import { Stepper, Step, StepLabel, Button, Typography } from '@mui/material';
 import { ethers } from 'ethers';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const steps = ['Step 1: Mint Tokens', 'Step 2: Transfer Tokens'];
 
 const tokenAddress = '0x65a5ba240CBd7fD75700836b683ba95EBb2F32bd';
 import erc20ABI from '../contracts/erc20ABI.json';
 
-const MultiStepForm = ({ mintTokens, transferTokens }) => {
+const MultiStepForm = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [amount, setAmount] = useState('');
   const [recipientAddress, setRecipientAddress] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  
 
   const handleNext = async () => {
     if (activeStep === 0) {
-      // Step 1: Mint Tokens
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        setError('Please enter a valid number greater than zero.');
-        return;
-      }
-
-      try {
-        if (window.ethereum) {
-          console.log("Ethereum",window.ethereum)
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          console.log("Provider",provider);
-          const signer = provider.getSigner();
-          console.log("Signer",signer);
-          const contract = new ethers.Contract(tokenAddress, erc20ABI, signer);
-
-          const tx = await contract.mint(signer.getAddress(), ethers.utils.parseUnits(amount, 'ether'));
-          await tx.wait();
-
-          setSuccess('Tokens minted successfully!');
-          setActiveStep((prevActiveStep) => prevActiveStep + 1);
-        } else {
-          setError('Ethereum object not found, install MetaMask.');
-        }
-      } catch (error) {
-        setError(`Transaction failed: ${error.message}`);
-      }
+      await handleMintTokens();
     } else if (activeStep === 1) {
-      // Step 2: Transfer Tokens
-      try {
-        
-        // await transferTokens(recipientAddress);
-        setSuccess('Tokens transferred successfully!');
-        setError('');
-        setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      } catch (err) {
-        setError('Error transferring tokens. Please try again.');
+      await handleTransferTokens();
+    }
+  };
+  
+  const handleMintTokens = async () => {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError('Please enter a valid number greater than zero.');
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      const contract = await getContract();
+      const tx = await contract.mint(ethers.parseUnits(amount, 'ether'));
+      await tx.wait();
+  
+      setSuccess('Tokens minted successfully!');
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    } catch (error) {
+      setError(`Transaction failed: ${error.message}`);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleTransferTokens = async () => {
+    try {
+      setError('')
+      setSuccess('')
+      if (!ethers.isAddress(recipientAddress)) {
+        throw new Error('Invalid recipient address');
       }
+      setLoading(true);
+      const contract = await getContract();
+      const tx = await contract.transfer(recipientAddress, ethers.parseUnits(amount, 'ether'));
+      await tx.wait();
+  
+      setSuccess('Tokens transferred successfully!');
+      setError('');
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    } catch (err) {
+      setSuccess('')
+      setError(`Error transferring tokens: ${err.message}`);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+  
+  const getContract = async () => {
+    if (window.ethereum) {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      return new ethers.Contract(tokenAddress, erc20ABI, signer);
+    } else {
+      throw new Error('Ethereum object not found, install MetaMask.');
     }
   };
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    setError('')
+    setSuccess('')
+    setAmount('')
+    setRecipientAddress('')
+  };
+
+  const handleReset = () => {
+    setActiveStep(0);
+    setError('')
+    setSuccess('')
+    setAmount('')
+    setRecipientAddress('')
   };
 
   const getStepContent = (stepIndex) => {
@@ -87,6 +125,13 @@ const MultiStepForm = ({ mintTokens, transferTokens }) => {
               />
             </label>
         );
+      case 2:
+          return(
+               <Typography sx={{ mt: 2, mb: 1 }}>
+              All steps completed - you&apos;re finished
+            </Typography>
+
+          )
       default:
         return 'Unknown stepIndex';
     }
@@ -101,21 +146,22 @@ const MultiStepForm = ({ mintTokens, transferTokens }) => {
           </Step>
         ))}
       </Stepper>
-      <form className="max-w-md mx-auto p-6 bg-white rounded-md shadow-md">
+      <form className="max-w-lg mx-auto p-8 bg-white rounded-md shadow-md">
         <Typography>{getStepContent(activeStep)}</Typography>
         <div className="flex justify-between mt-4">
           <Button disabled={activeStep === 0} onClick={handleBack}>
             Back
           </Button>
-          <Button  color="primary" onClick={handleNext}>
-            {activeStep === steps.length - 1 ? 'Finish' : 'Next'}
-          </Button>
+          <Button color="primary" onClick={activeStep === steps.length - 1 ? handleNext : activeStep === 0 ? handleNext : handleReset}>
+              {activeStep === 0 ? 'Mint Tokens' : activeStep === 1 ? 'Transfer Tokens' : 'Reset'}
+            </Button>
+
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         {success && <p style={{ color: 'green' }}>{success}</p>}
+        {loading && <CircularProgress  />}
       </form>
     </div>
   );
 };
-
 export default MultiStepForm;
