@@ -27,6 +27,7 @@ const MultiStepForm = () => {
   };
   
   const handleMintTokens = async () => {
+    clearMessages()
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       setError('Please enter a valid number greater than zero.');
@@ -42,7 +43,9 @@ const MultiStepForm = () => {
       setSuccess('Tokens minted successfully!');
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     } catch (error) {
-      setError(`Transaction failed: ${error.message}`);
+
+      // console.log("Error",error.info.error.message)
+      setError(`Transaction failed: ${error.info.error.message}`);
     }
     finally {
       setLoading(false);
@@ -51,8 +54,7 @@ const MultiStepForm = () => {
   
   const handleTransferTokens = async () => {
     try {
-      setError('')
-      setSuccess('')
+      clearMessages()
       if (!ethers.isAddress(recipientAddress)) {
         throw new Error('Invalid recipient address');
       }
@@ -83,18 +85,22 @@ const MultiStepForm = () => {
     }
   };
 
-  const handleBack = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  const clearMessages = () => {
     setError('')
     setSuccess('')
+  }
+
+
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    clearMessages()
     setAmount('')
     setRecipientAddress('')
   };
 
   const handleReset = () => {
     setActiveStep(0);
-    setError('')
-    setSuccess('')
+    clearMessages()
     setAmount('')
     setRecipientAddress('')
   };
