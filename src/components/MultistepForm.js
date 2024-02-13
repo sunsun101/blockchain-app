@@ -44,8 +44,8 @@ const MultiStepForm = () => {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
     } catch (error) {
 
-      // console.log("Error",error.info.error.message)
-      setError(`Transaction failed: ${error.info.error.message}`);
+      // console.log("Error",error)
+      setError(`Transaction failed: ${error.message}`);
     }
     finally {
       setLoading(false);
